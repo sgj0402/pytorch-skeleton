@@ -1,0 +1,11 @@
+mode: "train"
+
+# train:
+#   is_resume: false
+#   checkpoint_path: null
+#   epochs: 2
+
+train:
+  is_resume: true
+  checkpoint_path: ./checkpoints/checkpoint_2_accuracy=0.9824.pt
+  epochs: 2

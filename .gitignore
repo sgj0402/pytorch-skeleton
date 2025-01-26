@@ -1,3 +1,14 @@
+# output related
+checkpoints/
+data/
+
+# Aim related
+.aim/
+
+# Hydra related
+.hydra/
+outputs/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

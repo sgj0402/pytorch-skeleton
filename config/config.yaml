@@ -1,0 +1,8 @@
+defaults:
+  - setting: train # training, test
+  - hydra: hydra
+  - _self_
+
+experiment:
+  name: "namenameofexperiment"
+
