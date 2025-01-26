@@ -1,14 +1,9 @@
 mode: "train"
 
-# train:
-#   is_resume: false
-#   checkpoint_path: null
-#   epochs: 2
-
 train:
-  is_resume: true
+  is_resume: false
   training_checkpoint_dir: ./training_checkpoints
   training_checkpoint_name: checkpoint_2_accuracy=0.9824.pt
-  n_saved: 1
+  n_saved: 2
   model_checkpoint_dir: ./model_checkpoints
-  epochs: 2
+  epochs: 6

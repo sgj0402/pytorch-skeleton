@@ -17,14 +17,25 @@ import global_aim
 #TODO implement Saving function, validation function
 # TODO output transform
 
-def track_training_loss(engine):
+def track_training_loss(trainer):
 
     run = global_aim.get_run()
-    run.track(engine.state.output,
+    run.track(trainer.state.output,
               name='loss',
-              step=engine.state.iteration,
-              epoch=engine.state.epoch,
-              context={'mode': 'train', 'phase': 'train'})
+              step=trainer.state.iteration,
+              epoch=trainer.state.epoch,
+              context={'mode': 'train', 'type': 'training_loss'})
+    
+
+def track_metrics(trainer, evaluator, test_loader):
+
+    evaluator.run(test_loader)
+    
+    run = global_aim.get_run()
+    run.track(evaluator.state.metrics,
+              step=trainer.state.iteration,
+              epoch=trainer.state.epoch,
+              context={'mode': 'train', 'type': 'metric'})
 
 
 def train():
@@ -35,8 +46,8 @@ def train():
     # Load model, optimizer, loss_fn, dataloaders
     device = load_device()
     model = load_model(device)
-    loss_fn = load_loss_fn()
     optimizer = load_optimizer(model)
+    loss_fn = load_loss_fn()
     train_loader, test_loader = load_dataloaders()
     
     # Create trainer and evaluator
@@ -52,21 +63,9 @@ def train():
                                          map_location=device, weights_only=True) 
         Checkpoint.load_objects(to_load=to_save_to_load, checkpoint=training_checkpoint)
         print(f"Resuming training from {training_checkpoint_path}")
-
     
-
-    @trainer.on(Events.EPOCH_COMPLETED)
-    def log_validation_results(trainer):
-        evaluator.run(test_loader)
-        metrics = evaluator.state.metrics
-        print(
-            f"Validation Results - Epoch[{trainer.state.epoch}] Avg accuracy: {metrics['accuracy']:.2f} Avg loss: {metrics['loss']:.2f}"
-        )
-
-
-    
-
-
+    # save checkpoint settings
+    # TODO
     score_name = "accuracy"
     score_fn = lambda engine: engine.state.metrics[score_name]
 
@@ -79,37 +78,17 @@ def train():
         global_step_transform=global_step_from_engine(trainer)
     )
 
-    
-    evaluator.add_event_handler(Events.COMPLETED, checkpoint)
-
-
+    # Attach handlers
     trainer.add_event_handler(Events.ITERATION_COMPLETED(every=100), track_training_loss)
+    trainer.add_event_handler(Events.EPOCH_COMPLETED, track_metrics, evaluator, test_loader)
+    evaluator.add_event_handler(Events.COMPLETED, checkpoint)
     
-
+    # Attach progress bar
     pbar = ProgressBar(persist=True, bar_format='')
     pbar.attach(trainer, output_transform=lambda x: {'loss': x})
 
+    # Run trainer
     trainer.run(train_loader, max_epochs=train_config.epochs)
-
-
-
-def track_validation_metrics(trainer, test_evaluator, test_loader):
-    test_evaluator.run(test_loader)
-    metrics = test_evaluator.state.metrics
-    
-    run = global_aim.get_run()
-    run.track(metrics['loss'],
-              name='loss',
-              step=trainer.state.iteration,
-              epoch=trainer.state.epoch,
-              context={'mode': 'train', 'phase': 'validation'})
-    
-    run.track(metrics['accuracy'],
-              name='accuracy',
-              step=trainer.state.iteration,
-              epoch=trainer.state.epoch,
-              context={'mode': 'train', 'phase': 'validation'})
-
 
 
 def test(model, device):
