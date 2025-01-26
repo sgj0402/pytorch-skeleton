@@ -13,19 +13,15 @@ from ignite.metrics import Accuracy, Loss
 from omegaconf import DictConfig
 
 
-def load_device(preferred_device=None):
-    
-    if preferred_device is not None:
-        print(f'{preferred_device} is available, Using {preferred_device}')
-        return torch.device(preferred_device)
+def load_device():
+
+    if torch.cuda.is_available():
+        print('cuda is available, Using cuda')
+        return torch.device('cuda')
     
     elif torch.backends.mps.is_built() and torch.backends.mps.is_available():
         print('mps is available, Using mps')
         return torch.device('mps')
-    
-    elif torch.cuda.is_available():
-        print('cuda is available, Using cuda')
-        return torch.device('cuda')
     
     else:
         print('No gpu is available, Using cpu')
@@ -90,3 +86,7 @@ def load_test_metrics() -> dict:
 
 def load_loss_fn():
     return nn.CrossEntropyLoss()
+
+
+def load_optimizer(model):
+    return torch.optim.SGD(model.parameters(), lr = 0.01, momentum = 0.5)

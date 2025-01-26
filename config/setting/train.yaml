@@ -7,5 +7,8 @@ mode: "train"
 
 train:
   is_resume: true
-  checkpoint_path: ./checkpoints/checkpoint_2_accuracy=0.9824.pt
+  training_checkpoint_dir: ./training_checkpoints
+  training_checkpoint_name: checkpoint_2_accuracy=0.9824.pt
+  n_saved: 1
+  model_checkpoint_dir: ./model_checkpoints
   epochs: 2
