@@ -88,8 +88,7 @@ def train():
     )
 
     # Attach handlers
-    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=100), track_training_loss)
-    trainer.add_event_handler(Events.EPOCH_COMPLETED, track_training_loss)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, track_training_loss)
     trainer.add_event_handler(Events.EPOCH_COMPLETED, track_metrics,
                               evaluator=evaluator, test_loader=test_loader)
     evaluator.add_event_handler(Events.COMPLETED, training_checkpoint_handler)
