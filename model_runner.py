@@ -90,7 +90,7 @@ def train():
     evaluator.add_event_handler(Events.COMPLETED, model_checkpoint_handler)
     
     # Attach progress bar
-    pbar = ProgressBar(persist=True, bar_format='')
+    pbar = ProgressBar()
     pbar.attach(trainer)
 
     # Run trainer
