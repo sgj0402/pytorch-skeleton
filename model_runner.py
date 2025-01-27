@@ -90,11 +90,18 @@ def train():
     evaluator.add_event_handler(Events.COMPLETED, model_checkpoint_handler)
     
     # Attach progress bar
-    pbar = ProgressBar()
+    pbar = ProgressBar(bar_format='')
     pbar.attach(trainer)
 
     # Run trainer
+    print(f"Training started.")
+
     trainer.run(train_loader, max_epochs=train_config.epochs)
+
+    print(f"Training completed.")
+    print(f"Best training saved at {training_checkpoint_handler.last_checkpoint}")
+    print(f"Best model saved at {model_checkpoint_handler.last_checkpoint}")
+
 
 
 # TODO
