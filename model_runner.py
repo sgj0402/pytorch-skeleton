@@ -1,12 +1,7 @@
 import os
 
-import torch.nn as nn
-import torch.optim as optim
-
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.handlers import Checkpoint, global_step_from_engine, DiskSaver
-
-
 from ignite.contrib.handlers import ProgressBar
 
 from load_util import *
@@ -14,7 +9,6 @@ import global_config
 import global_aim
 
 
-#TODO implement Saving function, validation function
 # TODO output transform
 
 def track_training_loss(trainer):
@@ -66,6 +60,7 @@ def train():
     
     # Create checkpoint handler
     checkpoint_score_name = load_checkpoint_score_name()
+    # TODO
     checkpoint_score_fn = lambda engine: engine.state.metrics[checkpoint_score_name]
 
     training_checkpoint_handler = Checkpoint(
@@ -96,7 +91,7 @@ def train():
     
     # Attach progress bar
     pbar = ProgressBar(persist=True, bar_format='')
-    pbar.attach(trainer, output_transform=lambda x: {'loss': x})
+    pbar.attach(trainer)
 
     # Run trainer
     trainer.run(train_loader, max_epochs=train_config.epochs)
