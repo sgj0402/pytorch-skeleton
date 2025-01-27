@@ -21,7 +21,7 @@ def track_training_loss(trainer):
 
     run = global_aim.get_run()
     run.track(trainer.state.output,
-              name='loss',
+              name='training_loss',
               step=trainer.state.iteration,
               epoch=trainer.state.epoch,
               context={'mode': 'train', 'type': 'training_loss'})
@@ -54,7 +54,7 @@ def train():
     trainer = create_supervised_trainer(model, optimizer, loss_fn, device)
     evaluator = create_supervised_evaluator(model, metrics=load_test_metrics(), device=device)
     
-    # Load checkpoint
+    # If resuming, load checkpoint
     to_save_to_load = {'model': model, 'optimizer': optimizer, 'trainer': trainer}
     if train_config.is_resume:
         training_checkpoint_path = os.path.join(train_config.training_checkpoint_dir,
@@ -64,24 +64,36 @@ def train():
         Checkpoint.load_objects(to_load=to_save_to_load, checkpoint=training_checkpoint)
         print(f"Resuming training from {training_checkpoint_path}")
     
-    # save checkpoint settings
-    # TODO
-    score_name = "accuracy"
-    score_fn = lambda engine: engine.state.metrics[score_name]
+    # Create checkpoint handler
+    checkpoint_score_name = load_checkpoint_score_name()
+    checkpoint_score_fn = lambda engine: engine.state.metrics[checkpoint_score_name]
 
-    checkpoint = Checkpoint(
-        to_save_to_load,
+    training_checkpoint_handler = Checkpoint(
+        to_save=to_save_to_load,
         save_handler=DiskSaver(train_config.training_checkpoint_dir, require_empty=False),
-        score_name=score_name,
-        score_function=score_fn,
+        filename_prefix='training',
+        score_function=checkpoint_score_fn,
+        score_name=checkpoint_score_name,
+        n_saved=train_config.n_saved,
+        global_step_transform=global_step_from_engine(trainer)
+    )
+
+    model_checkpoint_handler = Checkpoint(
+        to_save={'model': model},
+        save_handler=DiskSaver(train_config.model_checkpoint_dir, require_empty=False),
+        score_function=checkpoint_score_fn,
+        score_name=checkpoint_score_name,
         n_saved=train_config.n_saved,
         global_step_transform=global_step_from_engine(trainer)
     )
 
     # Attach handlers
     trainer.add_event_handler(Events.ITERATION_COMPLETED(every=100), track_training_loss)
-    trainer.add_event_handler(Events.EPOCH_COMPLETED, track_metrics, evaluator, test_loader)
-    evaluator.add_event_handler(Events.COMPLETED, checkpoint)
+    trainer.add_event_handler(Events.EPOCH_COMPLETED, track_training_loss)
+    trainer.add_event_handler(Events.EPOCH_COMPLETED, track_metrics,
+                              evaluator=evaluator, test_loader=test_loader)
+    evaluator.add_event_handler(Events.COMPLETED, training_checkpoint_handler)
+    evaluator.add_event_handler(Events.COMPLETED, model_checkpoint_handler)
     
     # Attach progress bar
     pbar = ProgressBar(persist=True, bar_format='')
@@ -91,6 +103,7 @@ def train():
     trainer.run(train_loader, max_epochs=train_config.epochs)
 
 
+# TODO
 def test(model, device):
 
     test_loader = load_test_dataloader()

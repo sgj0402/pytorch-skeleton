@@ -90,3 +90,8 @@ def load_loss_fn():
 
 def load_optimizer(model):
     return torch.optim.SGD(model.parameters(), lr = 0.01, momentum = 0.5)
+
+
+def load_checkpoint_score_name() -> str:
+
+    return 'accuracy'
