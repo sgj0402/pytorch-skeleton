@@ -21,7 +21,7 @@ def track_training_loss(trainer):
               context={'mode': 'train', 'type': 'training_loss'})
     
 
-def track_metrics(trainer, evaluator, test_loader):
+def track_training_metrics(trainer, evaluator, test_loader):
 
     evaluator.run(test_loader)
     
@@ -30,6 +30,13 @@ def track_metrics(trainer, evaluator, test_loader):
               step=trainer.state.iteration,
               epoch=trainer.state.epoch,
               context={'mode': 'train', 'type': 'metric'})
+    
+
+def track_test_metrics(evaluator):
+    
+    run = global_aim.get_run()
+    run.track(evaluator.state.metrics,
+              context={'mode': 'test', 'type': 'metric'})
 
 
 def train():
@@ -43,51 +50,45 @@ def train():
     optimizer = load_optimizer(model)
     loss_fn = load_loss_fn()
     train_loader, test_loader = load_dataloaders()
-    
+
     # Create trainer and evaluator
     trainer = create_supervised_trainer(model, optimizer, loss_fn, device)
     evaluator = create_supervised_evaluator(model, metrics=load_test_metrics(), device=device)
-    
-    # If resuming, load checkpoint
-    to_save_to_load = {'model': model, 'optimizer': optimizer, 'trainer': trainer}
-    if train_config.is_resume:
-        training_checkpoint_path = os.path.join(train_config.training_checkpoint_dir,
-                                                train_config.training_checkpoint_name)
-        training_checkpoint = torch.load(training_checkpoint_path,
-                                         map_location=device, weights_only=True) 
-        Checkpoint.load_objects(to_load=to_save_to_load, checkpoint=training_checkpoint)
-        print(f"Resuming training from {training_checkpoint_path}")
-    
+
     # Create checkpoint handler
     checkpoint_score_name = load_checkpoint_score_name()
     # TODO
     checkpoint_score_fn = lambda engine: engine.state.metrics[checkpoint_score_name]
 
-    training_checkpoint_handler = Checkpoint(
-        to_save=to_save_to_load,
-        save_handler=DiskSaver(train_config.training_checkpoint_dir, require_empty=False),
-        filename_prefix='training',
+    to_save_training = {'model': model, 'optimizer': optimizer, 'trainer': trainer}
+    checkpoint_handler = Checkpoint(
+        to_save=to_save_training,
+        save_handler=DiskSaver(train_config.checkpoint_dir, require_empty=False),
         score_function=checkpoint_score_fn,
         score_name=checkpoint_score_name,
         n_saved=train_config.n_saved,
-        global_step_transform=global_step_from_engine(trainer)
+        global_step_transform=global_step_from_engine(trainer),
+        include_self=True # save checkpointer itself as key 'checkpointer'
     )
 
-    model_checkpoint_handler = Checkpoint(
-        to_save={'model': model},
-        save_handler=DiskSaver(train_config.model_checkpoint_dir, require_empty=False),
-        score_function=checkpoint_score_fn,
-        score_name=checkpoint_score_name,
-        n_saved=train_config.n_saved,
-        global_step_transform=global_step_from_engine(trainer)
-    )
-
+    # If resuming, load checkpoint
+    to_load_training = {'model': model,
+                        'optimizer': optimizer,
+                        'trainer': trainer,
+                        'checkpointer': checkpoint_handler}
+    if train_config.is_resume:
+        checkpoint_path = os.path.join(train_config.checkpoint_dir,
+                                                train_config.checkpoint_name)
+        checkpoint = torch.load(checkpoint_path,
+                                         map_location=device, weights_only=True) 
+        Checkpoint.load_objects(to_load=to_load_training, checkpoint=checkpoint)
+        print(f"Resuming training from {checkpoint_path}")
+    
     # Attach handlers
     trainer.add_event_handler(Events.ITERATION_COMPLETED, track_training_loss)
-    trainer.add_event_handler(Events.EPOCH_COMPLETED, track_metrics,
+    trainer.add_event_handler(Events.EPOCH_COMPLETED, track_training_metrics,
                               evaluator=evaluator, test_loader=test_loader)
-    evaluator.add_event_handler(Events.COMPLETED, training_checkpoint_handler)
-    evaluator.add_event_handler(Events.COMPLETED, model_checkpoint_handler)
+    evaluator.add_event_handler(Events.COMPLETED, checkpoint_handler)
     
     # Attach progress bar
     pbar = ProgressBar(bar_format='')
@@ -99,21 +100,44 @@ def train():
     trainer.run(train_loader, max_epochs=train_config.epochs)
 
     print(f"Training completed.")
-    print(f"Best training saved at {training_checkpoint_handler.last_checkpoint}")
-    print(f"Best model saved at {model_checkpoint_handler.last_checkpoint}")
+    print(f"Best training saved at {checkpoint_handler.last_checkpoint}")
 
 
 
 # TODO
-def test(model, device):
+def test():
+    # Load config
+    config = global_config.get_config()
+    test_config = config.setting.test
 
+    # Load model, test dataloader
+    device = load_device()
+    model = load_model(device)
     test_loader = load_test_dataloader()
 
-    test_metrics = load_test_metrics()
+    # Load model checkpoint
+    model_checkpoint_path = os.path.join(test_config.model_checkpoint_dir,
+                                        test_config.model_checkpoint_name)
+    model_checkpoint = torch.load(model_checkpoint_path, map_location=device, weights_only=True)
+    Checkpoint.load_objects(to_load={'model': model}, checkpoint=model_checkpoint)
 
-    test_evaluator = create_supervised_evaluator(model, metrics=test_metrics, device=device)
+    # Create evaluator
+    evaluator = create_supervised_evaluator(model, metrics=load_test_metrics(), device=device)
 
-    test_evaluator.run(test_loader)
+    # Attach handlers
+    evaluator.add_event_handler(Events.COMPLETED, track_test_metrics)
+
+    # Attach progress bar
+    pbar = ProgressBar(bar_format='')
+    pbar.attach(evaluator)
+
+    # Run evaluator
+    print(f"Testing started.")
+
+    evaluator.run(test_loader)
+
+    print(f"Testing completed.")
+
 
     
 def model_run():

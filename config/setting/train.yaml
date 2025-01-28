@@ -1,12 +1,11 @@
 mode: "train"
 
 aim:
-  run_hash: c285733ad7f643d7b21f89a8
+  run_hash: d517329f056c4867a2ed66ca
 
 train:
-  is_resume: false
-  training_checkpoint_dir: ./training_checkpoints
-  training_checkpoint_name: training_checkpoint_4_accuracy=0.9886.pt
+  is_resume: true
+  checkpoint_dir: ./checkpoints
+  checkpoint_name: checkpoint_5_accuracy=0.9884.pt
   n_saved: 2
-  model_checkpoint_dir: ./model_checkpoints
   epochs: 10

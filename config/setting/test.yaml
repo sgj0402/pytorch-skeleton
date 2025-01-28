@@ -1,1 +1,5 @@
-name: "test"
+mode: "test"
+
+test:
+  model_checkpoint_dir: ./training_checkpoints
+  model_checkpoint_name: training_checkpoint_4_accuracy=0.9886.pt

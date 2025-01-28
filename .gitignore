@@ -1,6 +1,6 @@
 # output related
-model_checkpoints/
-training_checkpoints/
+checkpoints/
+checkpoints/
 data/
 
 # Aim related
