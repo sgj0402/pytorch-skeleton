@@ -1,4 +1,5 @@
 import os
+from pprint import pprint
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.handlers import Checkpoint, global_step_from_engine, DiskSaver
@@ -71,18 +72,19 @@ def train():
         include_self=True # save checkpointer itself as key 'checkpointer'
     )
 
-    # If resuming, load checkpoint
+    # If resuming, load training checkpoint
     to_load_training = {'model': model,
                         'optimizer': optimizer,
                         'trainer': trainer,
                         'checkpointer': checkpoint_handler}
     if train_config.is_resume:
-        checkpoint_path = os.path.join(train_config.checkpoint_dir,
+        training_checkpoint_path = os.path.join(train_config.checkpoint_dir,
                                                 train_config.checkpoint_name)
-        checkpoint = torch.load(checkpoint_path,
-                                         map_location=device, weights_only=True) 
-        Checkpoint.load_objects(to_load=to_load_training, checkpoint=checkpoint)
-        print(f"Resuming training from {checkpoint_path}")
+        training_checkpoint = torch.load(training_checkpoint_path,
+                                         map_location=device,
+                                         weights_only=True) 
+        Checkpoint.load_objects(to_load=to_load_training, checkpoint=training_checkpoint)
+        print(f"Resuming training from {training_checkpoint_path}")
     
     # Attach handlers
     trainer.add_event_handler(Events.ITERATION_COMPLETED, track_training_loss)
@@ -103,8 +105,6 @@ def train():
     print(f"Best training saved at {checkpoint_handler.last_checkpoint}")
 
 
-
-# TODO
 def test():
     # Load config
     config = global_config.get_config()
@@ -116,8 +116,7 @@ def test():
     test_loader = load_test_dataloader()
 
     # Load model checkpoint
-    model_checkpoint_path = os.path.join(test_config.model_checkpoint_dir,
-                                        test_config.model_checkpoint_name)
+    model_checkpoint_path = os.path.join(test_config.checkpoint_dir, test_config.checkpoint_name)
     model_checkpoint = torch.load(model_checkpoint_path, map_location=device, weights_only=True)
     Checkpoint.load_objects(to_load={'model': model}, checkpoint=model_checkpoint)
 
@@ -137,6 +136,7 @@ def test():
     evaluator.run(test_loader)
 
     print(f"Testing completed.")
+    pprint(f"{evaluator.state.metrics}")
 
 
     
@@ -148,7 +148,7 @@ def model_run():
         train()
         
     elif config.setting.mode == 'test':
-        NotImplementedError()
+        test()
         
     else:
         raise ValueError(f"Invalid mode: {config.setting.mode}")

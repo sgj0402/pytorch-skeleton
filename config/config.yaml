@@ -1,8 +1,4 @@
 defaults:
-  - setting: train # training, test
+  - setting: test # training, test
   - hydra: hydra
   - _self_
-
-experiment:
-  name: "MNIST Training"
-

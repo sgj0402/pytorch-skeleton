@@ -16,15 +16,15 @@ from omegaconf import DictConfig
 def load_device():
 
     if torch.cuda.is_available():
-        print('cuda is available, Using cuda')
+        print('cuda is available, Using cuda.')
         return torch.device('cuda')
     
     elif torch.backends.mps.is_built() and torch.backends.mps.is_available():
-        print('mps is available, Using mps')
+        print('mps is available, Using mps.')
         return torch.device('mps')
     
     else:
-        print('No gpu is available, Using cpu')
+        print('No gpu is available, Using cpu.')
         return torch.device('cpu')
 
 
