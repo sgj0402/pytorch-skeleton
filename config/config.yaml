@@ -1,4 +1,4 @@
 defaults:
-  - setting: test # training, test
+  - setting: train # training, test
   - hydra: hydra
   - _self_

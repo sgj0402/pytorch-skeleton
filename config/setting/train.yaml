@@ -2,12 +2,12 @@ experiment_name: "MNIST Training"
 
 mode: "train"
 
-aim:
-  run_hash: d517329f056c4867a2ed66ca
-
 train:
-  is_resume: true
+  is_resume: false
   checkpoint_dir: ./checkpoints
   checkpoint_name: checkpoint_5_accuracy=0.9884.pt
   n_saved: 2
   epochs: 10
+
+aim:
+  run_hash: d517329f056c4867a2ed66ca

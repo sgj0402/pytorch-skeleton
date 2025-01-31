@@ -6,8 +6,10 @@ from ignite.handlers import Checkpoint, global_step_from_engine, DiskSaver
 from ignite.contrib.handlers import ProgressBar
 
 from load_util import *
+from ignite_util import *
 import global_config
 import global_aim
+
 
 
 # TODO output transform
@@ -53,8 +55,23 @@ def train():
     train_loader, test_loader = load_dataloaders()
 
     # Create trainer and evaluator
-    trainer = create_supervised_trainer(model, optimizer, loss_fn, device)
-    evaluator = create_supervised_evaluator(model, metrics=load_test_metrics(), device=device)
+    trainer = create_supervised_trainer(model=model,
+                                        optimizer=optimizer,
+                                        loss_fn=loss_fn,
+                                        device=device,
+                                        prepare_batch=get_prepare_batch(),
+                                        model_transform=get_model_transform(),
+                                        output_transform=get_trainer_output_transform(),
+                                        model_fn=get_model_fn())
+    
+    evaluator = create_supervised_evaluator(model=model,
+                                            metrics=load_test_metrics(),
+                                            device=device,
+                                            prepare_batch=get_prepare_batch(),
+                                            model_transform=get_model_transform(),
+                                            output_transform=get_evaluator_output_transform(),
+                                            model_fn=get_model_fn())
+    
 
     # Create checkpoint handler
     checkpoint_score_name = load_checkpoint_score_name()
