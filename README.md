@@ -32,5 +32,5 @@ pip3 install aim
 # How to Use
 
 - Implement `ignite_util.py` and `load_util.py`.
-- modify `config/config.yaml` and `config/setting/train.yaml` / `config/setting/test.yaml`.
-- run `main.py` and `aim up`.
+- Modify `config/config.yaml` and `config/setting/train.yaml` / `config/setting/test.yaml`.
+- Run `main.py` and `aim up`.
